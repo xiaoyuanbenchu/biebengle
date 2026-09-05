@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html><head><meta charset="UTF-8"><style>body{margin:0;background:#0b0b12}</style></head>
+<body><canvas id="c" width="512" height="512"></canvas><script>
+const c=document.getElementById('c'),x=c.getContext('2d');
+const g=x.createLinearGradient(0,0,512,512);
+g.addColorStop(0,'#1a1030'); g.addColorStop(1,'#0b0b12');
+x.fillStyle=g; x.fillRect(0,0,512,512);
+x.shadowColor='rgba(255,255,255,.8)'; x.shadowBlur=24;
+x.strokeStyle='#fff'; x.lineWidth=14;
+x.beginPath(); x.arc(256,256,115,0,7); x.stroke();
+x.shadowColor='#7c5cff'; x.shadowBlur=30;
+x.strokeStyle='#8f6cff'; x.lineWidth=26; x.lineCap='round';
+for(let i=0;i<4;i++){ x.beginPath(); x.arc(256,256,168,i*1.57+0.3,i*1.57+1.25); x.stroke(); }
+x.shadowBlur=0;
+const tg=x.createLinearGradient(0,160,0,360);
+tg.addColorStop(0,'#ff5f9e'); tg.addColorStop(1,'#ffb86b');
+x.fillStyle=tg; x.font='900 150px "Microsoft YaHei",sans-serif';
+x.textAlign='center'; x.textBaseline='middle';
+x.fillText('绷',256,268);
+</script></body></html>
