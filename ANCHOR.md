@@ -84,6 +84,7 @@
 - **性能教训**：`shadowBlur` 在真机原生 canvas 是填充率杀手（中端机 1-2fps），已全换双层描边假辉光；DPR 封顶 2 会糊字，去掉 shadow 后恢复 3 不卡
 - **教训总纲**：PC/headless 正常 ≠ 真机正常。真机三坑：①canvas 颜色/角度解析保守 ②填充率敏感 ③时钟量纲不一。**动画一律用帧累加时钟 + 小数值 + hex 颜色，别碰系统时钟大数**
 - 排查真机问题的正道：**开发者工具「真机调试」**（PC 实时看手机 console），比截图猜快得多；预览版 vConsole 绿色按钮是备用
+- **真机调试日志分析结论（2026-09-06，Android + 基础库 3.17.2）**：用户全流程走通，日志中 0 条游戏代码报错。`getSystemInfo jsbridge not ready`（框架启动噪音）、`DETECT WARN no-parallel-download`（性能优化建议非错误）、`webapi_game_transfer -31001`（微信托管能力开发环境不可用，框架级）均为框架内部噪音。Android 原生 canvas 的保守行为（hsl 不认、大角度精度崩）与排查推断吻合
 - 服务器进程会被会话回收，headless 测试前先 curl 探活 127.0.0.1:8934
 
 ## 路线图（backlog，按价值排序）
