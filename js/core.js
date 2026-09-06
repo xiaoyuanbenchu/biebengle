@@ -19,6 +19,15 @@ if (typeof Array.from !== "function") {
 if (typeof String.prototype.repeat !== "function") {
   String.prototype.repeat = function (n) { n = n | 0; let s = String(this), r = ""; while (n-- > 0) r += s; return r; };
 }
+/* hsl 转 hex：部分真机 canvas 连逗号 hsl 都解析失败，hex 是唯一全平台安全色 */
+function hsl2hex(h, s, l) {
+  s /= 100; l /= 100;
+  const k = n => (n + h / 30) % 12;
+  const a = s * Math.min(l, 1 - l);
+  const f = n => l - a * Math.max(-1, Math.min(k(n) - 3, Math.min(9 - k(n), 1)));
+  const to = x => Math.round(255 * x).toString(16).padStart(2, "0");
+  return "#" + to(f(0)) + to(f(8)) + to(f(4));
+}
 
 /* ================= 平台适配 ================= */
 const isWx = (typeof wx !== "undefined") && !!wx.getSystemInfoSync;
@@ -27,7 +36,7 @@ if (isWx) { try { sys = wx.getSystemInfoSync(); } catch (e) { sys = { windowWidt
 else sys = { windowWidth: __G.innerWidth, windowHeight: __G.innerHeight, pixelRatio: Math.min(__G.devicePixelRatio || 1, 2.5) };
 
 const W = sys.windowWidth || 375, H = sys.windowHeight || 667;
-const DPR = Math.min(sys.pixelRatio || 1, 2);   // 背板封顶 2 倍屏，真机填充率保命
+const DPR = Math.min(sys.pixelRatio || 1, 3);
 const canvas = isWx ? wx.createCanvas() : __G.document.getElementById("cv");
 canvas.width = Math.round(W * DPR); canvas.height = Math.round(H * DPR);
 if (!isWx) { canvas.style.width = W + "px"; canvas.style.height = H + "px"; }
@@ -269,13 +278,13 @@ function skinUnlocked(sk) {
 function currentSkin() { return skinById(skinId); }
 function ringColor() {
   const sk = currentSkin();
-  if (ring && ring.type === "boss") return "hsl(18,100%,60%)";
-  if (ring && ring.type === "golden") return "hsl(46,100%,60%)";
-  if (ring && ring.type === "trickster") return "hsl(350,95%,65%)";
-  if (ring && ring.type === "bouncer") return "hsl(140,80%,60%)";
-  if (ring && ring.type === "reverse") return "hsl(205,95%,66%)";
-  if (sk.dyn) return "hsl(" + hue + ",95%,62%)";
-  return "hsl(" + sk.hue + ",95%,62%)";
+  if (ring && ring.type === "boss") return hsl2hex(18, 100, 60);
+  if (ring && ring.type === "golden") return hsl2hex(46, 100, 60);
+  if (ring && ring.type === "trickster") return hsl2hex(350, 95, 65);
+  if (ring && ring.type === "bouncer") return hsl2hex(140, 80, 60);
+  if (ring && ring.type === "reverse") return hsl2hex(205, 95, 66);
+  if (sk.dyn) return hsl2hex(hue, 95, 62);
+  return hsl2hex(sk.hue, 95, 62);
 }
 
 /* ================= UI 原语 ================= */
@@ -574,9 +583,10 @@ function genShareImage() {
 
 /* ================= 主循环（结构 = 第一版，真机已验证可运行；只保留确认有效的修复） ================= */
 function loop(ts) {
-  _ts = (typeof ts === "number" && isFinite(ts)) ? ts / 1000 : Date.now() / 1000;
-  const dt = lastFrame ? Math.min((ts - lastFrame) / 1000, 0.05) : 0.016;
-  lastFrame = ts;
+  const tms = (typeof ts === "number" && isFinite(ts)) ? ts : Date.now();   // 单点净化，下游不再接触原始参数
+  _ts = tms / 1000;
+  const dt = lastFrame ? Math.min((tms - lastFrame) / 1000, 0.05) : 0.016;
+  lastFrame = tms;
   const T = T_FRAC * Math.min(W, H);
   if (mode === "play") {
     if (gmode === "sprint") {
@@ -615,13 +625,14 @@ function loop(ts) {
   flash = Math.max(0, flash - dt * 1.6);
   skullT = Math.max(0, skullT - dt);
   shakeT = Math.max(0, shakeT - dt);
-  draw(ts);
+  draw(tms);
   requestAnimationFrame(loop);
 }
 
 /* ================= 绘制 ================= */
 function draw(ts) {
   btns = [];
+  ctx.setTransform(DPR, 0, 0, DPR, 0, 0);   // 每帧重设：防部分真机重置画布变换
   ctx.clearRect(0, 0, W, H);
   ctx.save();
   if (shakeT > 0) ctx.translate(rand(-8, 8), rand(-6, 6));
@@ -680,7 +691,7 @@ function drawPlay(ts) {
   ctx.globalAlpha = 1;
   if (ring && isFinite(ring.f) && isFinite(_ts)) {
     const r = ring.f * Math.min(W, H), col = ringColor();
-    const spin = (ring.type === "reverse" ? -1 : 1) * ts / 600;
+    const spin = (ring.type === "reverse" ? -1 : 1) * _ts * 1.667;   // 用净化时间，原始 rAF 参数在部分真机是 NaN
     const trail = r - ring.dir * speed * ring.spdJit * Math.min(W, H) * 0.05;
     const cap = sk.id === "pixel" ? "butt" : "round";
     ctx.lineCap = cap;
@@ -698,7 +709,7 @@ function drawPlay(ts) {
   }
   for (const p of particles) {
     ctx.globalAlpha = 1 - p.t / p.life;
-    ctx.fillStyle = "hsl(" + p.hue + ",90%,65%)";
+    ctx.fillStyle = hsl2hex(p.hue, 90, 65);
     if (sk.id === "pixel") ctx.fillRect(p.x - p.size, p.y - p.size, p.size * 2, p.size * 2);
     else { ctx.beginPath(); ctx.arc(p.x, p.y, p.size, 0, 7); ctx.fill(); }
   }
@@ -761,7 +772,7 @@ function drawMenu() {
     const okS = skinUnlocked(sk);
     ctx.globalAlpha = okS ? 1 : 0.3;
     ctx.beginPath(); ctx.arc(sx0, y, sr, 0, 7);
-    ctx.fillStyle = sk.dyn ? "hsl(280,95%,62%)" : "hsl(" + sk.hue + ",95%,62%)";
+    ctx.fillStyle = hsl2hex(sk.dyn ? 280 : sk.hue, 95, 62);
     ctx.fill();
     if (sk.id === skinId) { ctx.strokeStyle = "#fff"; ctx.lineWidth = 2.5; ctx.beginPath(); ctx.arc(sx0, y, sr + 4, 0, 7); ctx.stroke(); }
     else if (!okS) { ctx.fillStyle = "#fff"; ctx.font = Math.round(sr) + "px sans-serif"; ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.fillText("🔒", sx0, y); }
