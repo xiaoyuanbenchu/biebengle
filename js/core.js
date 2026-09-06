@@ -655,7 +655,7 @@ function drawPlay(ts) {
   drawHUD();
   const T = T_FRAC * Math.min(W, H), c0 = center();
   const sk = currentSkin();
-  if (sk.dyn) { hue = (260 + combo * 22) % 360; __G.document && __G.document.documentElement && 0; }
+  if (sk.dyn) { hue = (260 + combo * 22) % 360; }
   ctx.save();
   ctx.shadowColor = "rgba(255,255,255,.7)"; ctx.shadowBlur = 18;
   ctx.strokeStyle = "rgba(255,255,255,.9)"; ctx.lineWidth = 3;
