@@ -138,9 +138,23 @@ if (isWx) {
 }
 /* 分享 */
 let passiveShareCb = null;
+const SITE_URL = "https://xiaoyuanbenchu.github.io/biebengle/";
 function doShare(payload) {
-  if (isWx) { try { wx.shareAppMessage(payload); } catch (e) {} }
-  else { __G.__LAST_SHARE__ = payload; __G.console && console.log("[SHARE] " + JSON.stringify(payload)); }
+  if (isWx) { try { wx.shareAppMessage(payload); } catch (e) {} return; }
+  const url = SITE_URL + "?" + (payload.query || "");
+  const full = payload.title + " 👉 " + url;
+  if (__G.navigator && navigator.share) {
+    navigator.share({ title: "别绷了", text: payload.title, url: url }).catch(() => {});
+    return;
+  }
+  if (__G.navigator && navigator.clipboard) {
+    navigator.clipboard.writeText(full)
+      .then(() => toast("挑战链接已复制，去粘贴挑衅", "#7cffb2"))
+      .catch(() => { __G.__LAST_SHARE__ = payload; toast(full.slice(0, 40), "#ffd666"); });
+    return;
+  }
+  __G.__LAST_SHARE__ = payload;
+  __G.console && console.log("[SHARE] " + full);
 }
 if (isWx) {
   try { wx.showShareMenu({ withShareTicket: false, menus: ["shareAppMessage", "shareTimeline"] }); } catch (e) {}
