@@ -38,13 +38,15 @@
 
 | 文件 | 作用 |
 |---|---|
-| `index.html` | 整个游戏。常量区（梗文案/成就/称号/圈型介绍）在 script 顶部；核心状态机 spawn→press→loop→draw |
-| `sw.js` | 离线缓存。**改了资源必须把 CACHE 版本号 +1**，否则老客户端不更新 |
-| `manifest.webmanifest` / `icon-512.png` | PWA 清单与图标 |
+| `game.js` / `game.json` / `project.config.json` / `js/core.js` | **小游戏工程（必须在仓库根目录，开发者工具从根目录导入）**。core.js = 整个游戏，双端运行（真机 wx.* / 浏览器原生）。改了游戏只动 core.js |
+| `index.html` / `sw.js` / `manifest.webmanifest` / `icon-512.png` | 网页版（GitHub Pages 同域共存，互不干扰） |
 | `icon.html` | 图标源文件（headless Edge 截图生成 PNG） |
 | `serve.js` | 局域网试玩服务器（8934，含路径穿越防护与 MIME 表） |
+| `test/harness.html` + `test/wx-shim.js` | 浏览器测试通道。**shim 绝不能定义 window.wx**（否则 core 的 isWx 误判，输入桥和钩子全失效） |
 | `ANCHOR.md` | 本文件——项目唯一记忆锚点 |
 | `shots/` | 回归截图（git 忽略） |
+
+**开发者工具导入步骤**：微信开发者工具 → 导入 → 目录选 `X:\量化课改\bie-beng-le`（根目录！）→ AppID 自动读到 wx7c6ab4289784e091 → 类型应显示「小游戏」。**若提示 AppID 与项目类型不匹配**（个人主体注册的是小程序 AppID，非小游戏 AppID）：点导入框里的「测试号」即可正常开发+真机预览；体验版上传才必须小游戏类目 AppID（个体户，见 Phase 2）。
 
 ## 本地存档（localStorage 键）
 
