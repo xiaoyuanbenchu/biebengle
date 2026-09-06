@@ -1,0 +1,18 @@
+{
+  "appid": "wx7c6ab4289784e091",
+  "compileType": "game",
+  "libVersion": "3.7.1",
+  "projectname": "biebengle",
+  "setting": {
+    "es6": true,
+    "postcss": false,
+    "minified": true,
+    "urlCheck": false,
+    "enhance": true
+  },
+  "condition": {},
+  "editorSetting": {
+    "tabIndent": "insertSpaces",
+    "tabSize": 2
+  }
+}
