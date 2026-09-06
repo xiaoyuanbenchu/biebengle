@@ -27,7 +27,7 @@ if (isWx) { try { sys = wx.getSystemInfoSync(); } catch (e) { sys = { windowWidt
 else sys = { windowWidth: __G.innerWidth, windowHeight: __G.innerHeight, pixelRatio: Math.min(__G.devicePixelRatio || 1, 2.5) };
 
 const W = sys.windowWidth || 375, H = sys.windowHeight || 667;
-const DPR = Math.min(sys.pixelRatio || 1, 2.5);
+const DPR = Math.min(sys.pixelRatio || 1, 2);   // 背板封顶 2 倍屏，真机填充率保命
 const canvas = isWx ? wx.createCanvas() : __G.document.getElementById("cv");
 canvas.width = Math.round(W * DPR); canvas.height = Math.round(H * DPR);
 if (!isWx) { canvas.style.width = W + "px"; canvas.style.height = H + "px"; }
@@ -687,11 +687,10 @@ function drawPlay(ts) {
   const T = T_FRAC * Math.min(W, H), c0 = center();
   const sk = currentSkin();
   if (sk.dyn) { hue = (260 + combo * 22) % 360; }
-  ctx.save();
-  ctx.shadowColor = "rgba(255,255,255,.7)"; ctx.shadowBlur = 18;
+  ctx.strokeStyle = "rgba(255,255,255,.25)"; ctx.lineWidth = 9;
+  ctx.beginPath(); ctx.arc(c0.x, c0.y, T, 0, 7); ctx.stroke();
   ctx.strokeStyle = "rgba(255,255,255,.9)"; ctx.lineWidth = 3;
   ctx.beginPath(); ctx.arc(c0.x, c0.y, T, 0, 7); ctx.stroke();
-  ctx.restore();
   for (const g of ghosts) {
     ctx.strokeStyle = g.color; ctx.globalAlpha = g.life * 0.8; ctx.lineWidth = 4;
     ctx.beginPath(); ctx.arc(c0.x, c0.y, g.r + (1 - g.life) * T * 1.1, 0, 7); ctx.stroke();
@@ -708,11 +707,12 @@ function drawPlay(ts) {
       for (let i = 0; i < 4; i++) { ctx.beginPath(); ctx.arc(c0.x, c0.y, trail, spin + i * Math.PI / 2, spin + i * Math.PI / 2 + Math.PI / 2.6); ctx.stroke(); }
       ctx.restore();
     }
-    ctx.save();
-    ctx.shadowColor = col; ctx.shadowBlur = sk.id === "frost" ? 34 : 24;
-    ctx.strokeStyle = col; ctx.lineWidth = Math.max(5, Math.min(W, H) * (sk.id === "pixel" ? 0.028 : 0.022));
-    for (let i = 0; i < 4; i++) { ctx.beginPath(); ctx.arc(c0.x, c0.y, r, spin + i * Math.PI / 2, spin + i * Math.PI / 2 + (sk.id === "pixel" ? Math.PI / 3.2 : Math.PI / 2.6)); ctx.stroke(); }
-    ctx.restore();
+    const lw2 = Math.max(5, Math.min(W, H) * (sk.id === "pixel" ? 0.028 : 0.022));
+    const arcSpan = sk.id === "pixel" ? Math.PI / 3.2 : Math.PI / 2.6;
+    ctx.globalAlpha = 0.25; ctx.strokeStyle = col; ctx.lineWidth = lw2 * 2.3;   // 假辉光：双层描边，不用 shadowBlur（真机太贵）
+    for (let i = 0; i < 4; i++) { ctx.beginPath(); ctx.arc(c0.x, c0.y, r, spin + i * Math.PI / 2, spin + i * Math.PI / 2 + arcSpan); ctx.stroke(); }
+    ctx.globalAlpha = 1; ctx.strokeStyle = col; ctx.lineWidth = lw2;
+    for (let i = 0; i < 4; i++) { ctx.beginPath(); ctx.arc(c0.x, c0.y, r, spin + i * Math.PI / 2, spin + i * Math.PI / 2 + arcSpan); ctx.stroke(); }
   }
   for (const p of particles) {
     ctx.globalAlpha = 1 - p.t / p.life;
@@ -940,7 +940,7 @@ function handleAction(id) {
 
 /* ================= 初始化 ================= */
 (function initStars() {
-  for (let i = 0; i < 42; i++) stars.push({ x: Math.random() * W, y: Math.random() * H, z: 0.2 + Math.random() * 0.8, s: 0.5 + Math.random() * 1.8 });
+  for (let i = 0; i < 24; i++) stars.push({ x: Math.random() * W, y: Math.random() * H, z: 0.2 + Math.random() * 0.8, s: 0.5 + Math.random() * 1.8 });
   vig = makeCanvas(Math.round(W * DPR), Math.round(H * DPR));
   const v = vig.getContext("2d");
   const g = v.createRadialGradient(vig.width / 2, vig.height / 2, Math.min(vig.width, vig.height) * 0.42, vig.width / 2, vig.height / 2, Math.max(vig.width, vig.height) * 0.75);
