@@ -583,10 +583,10 @@ function genShareImage() {
 
 /* ================= 主循环（结构 = 第一版，真机已验证可运行；只保留确认有效的修复） ================= */
 function loop(ts) {
-  const tms = (typeof ts === "number" && isFinite(ts)) ? ts : Date.now();   // 单点净化，下游不再接触原始参数
-  _ts = tms / 1000;
+  const tms = (typeof ts === "number" && isFinite(ts)) ? ts : Date.now();
   const dt = lastFrame ? Math.min((tms - lastFrame) / 1000, 0.05) : 0.016;
   lastFrame = tms;
+  _ts = _ts + dt;   // 动画时钟=帧累加：与系统时钟解耦，杜绝 Date.now() 级大数撑爆 canvas 角度精度
   const T = T_FRAC * Math.min(W, H);
   if (mode === "play") {
     if (gmode === "sprint") {
@@ -691,7 +691,7 @@ function drawPlay(ts) {
   ctx.globalAlpha = 1;
   if (ring && isFinite(ring.f) && isFinite(_ts)) {
     const r = ring.f * Math.min(W, H), col = ringColor();
-    const spin = (ring.type === "reverse" ? -1 : 1) * _ts * 1.667;   // 用净化时间，原始 rAF 参数在部分真机是 NaN
+    const spin = (ring.type === "reverse" ? -1 : 1) * ((_ts * 1.667) % (Math.PI * 2));   // 对 2π 取模，角度永远小数值
     const trail = r - ring.dir * speed * ring.spdJit * Math.min(W, H) * 0.05;
     const cap = sk.id === "pixel" ? "butt" : "round";
     ctx.lineCap = cap;
