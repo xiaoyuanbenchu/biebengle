@@ -36,6 +36,12 @@
     }
   } catch (e) {}
   window.__QUERY__ = q;
+  /* 公测诊断：收集页面级报错，随玩家反馈一起打包 */
+  window.__ERRS__ = [];
+  window.addEventListener("error", e => {
+    window.__ERRS__.push(((e && e.message) || "error").slice(0, 60));
+    if (window.__ERRS__.length > 5) window.__ERRS__.shift();
+  });
 })();
 </script>
 <script src="js/core.js"></script>

@@ -185,7 +185,7 @@ function editText(defVal, maxLen, cb) {
 
 /* ================= 常量与文案 ================= */
 const MUSIC_ON = true;
-const VERSION = "MP-1.0";
+const VERSION = "v4.0 公测";
 const F_START = 0.42, T_FRAC = 0.125, BASE = (F_START - T_FRAC) / 1.5;
 const PERFECT = ["泰裤辣！", "遥遥领先！", "稳如老狗", "6到飞起", "这就是天赋？", "绷住了！", "干净又卫生", "手速逆天", "有点东西"];
 const GOOD = ["还行吧", "勉强及格", "就这？", "差点意思", "小赚一口", "马马虎虎"];
@@ -246,6 +246,14 @@ let skinId = store.get("bb_skin", "neon");
 let revStats = store.get("bb_revstats", { shares: 0, wins: 0 });
 let maxChain = store.get("bb_maxchain", 0);
 let muted = false;
+let fbComment = store.get("bb_fbcomment", "");
+let lastErrWeb = [];
+if (!isWx && __G.window && __G.window.addEventListener) {           // 网页端收集运行时报错，随反馈打包
+  __G.window.addEventListener("error", e => {
+    lastErrWeb.push(((e && e.message) || "error").slice(0, 60));
+    if (lastErrWeb.length > 3) lastErrWeb.shift();
+  });
+}
 let rev = { armed: false, score: 0, msg: "", chain: 0 };
 let lwText = "", lastDeathCause = "wild";
 let overPhase = "dead", overAt = 0, revWinFrag = null;
@@ -352,6 +360,29 @@ function unlockAch(id) {
   toast("🏆 成就解锁：" + a.name, "#ffe08a");
 }
 function saveCareer() { store.set("bb_career", career); }
+
+function copyText(t) {
+  if (isWx) { try { wx.setClipboardData({ data: t }); toast("已复制", "#7cffb2"); } catch (e) {} return; }
+  if (__G.navigator && navigator.clipboard) {
+    navigator.clipboard.writeText(t)
+      .then(() => toast("已复制", "#7cffb2"))
+      .catch(() => toast("复制失败，长按截图吧", "#ff6b81"));
+    return;
+  }
+  toast("复制失败，长按截图吧", "#ff6b81");
+}
+function buildFeedbackText() {
+  const lines = [
+    "【别绷了·公测反馈】",
+    "版本: " + VERSION,
+    "环境: " + (isWx ? "微信小游戏·" + (sys.platform || "") : "网页 " + W + "x" + H + "@" + DPR),
+    "生涯: 绷力 " + career.points + " · " + careerTitle(career.points) + " · 最高分 " + best + " · 最高连绷 " + career.bestCombo,
+    "成就: " + unlocked.size + "/" + ACH.length,
+    "意见: " + (fbComment || "(未填写)")
+  ];
+  if (lastErrWeb.length) lines.push("报错: " + lastErrWeb.join(" | "));
+  return lines.join("\n");
+}
 
 /* ================= 游戏流程 ================= */
 function startGame(gm) {
@@ -655,6 +686,7 @@ function draw(ts) {
   else if (mode === "menu") drawMenu();
   else if (mode === "over") drawOver();
   else if (mode === "stats") drawStats();
+  else if (mode === "fb") drawFeedback();
   drawToast();
   if (vig) ctx.drawImage(vig, 0, 0, W, H);
   if (flash > 0) { ctx.fillStyle = "rgba(255,255,255," + flash + ")"; ctx.fillRect(0, 0, W, H); }
@@ -799,7 +831,8 @@ function drawMenu() {
   text("⚠ 特殊圈型 · 👑 绷王时刻", W / 2, y, W * 0.03, "rgba(255,255,255,.75)", 400); y += W * 0.055;
   text("🤡 3 条命 · 按歪或手痒都扣命", W / 2, y, W * 0.03, "rgba(255,255,255,.75)", 400); y += W * 0.07;
   text("🏆 成就 " + unlocked.size + "/" + ACH.length + " · 累计绷力 " + career.points + " · " + careerTitle(career.points), W / 2, y, W * 0.028, "rgba(255,255,255,.5)", 400); y += W * 0.045;
-  text(VERSION + " · 手指点按即玩", W / 2, y, W * 0.026, "rgba(255,255,255,.35)", 400);
+  text(VERSION + " · 手指点按即玩", W / 2, y, W * 0.026, "rgba(255,255,255,.35)", 400); y += W * 0.05;
+  button("fb", (W - W * 0.5) / 2, y, W * 0.5, W * 0.07, "📝 公测有想法？点我反馈", "link", W * 0.028);
   passiveShareCb = defaultShare;
 }
 function drawOver() {
@@ -900,6 +933,30 @@ function drawStats() {
   ctx.restore();
   button("back", (W - W * 0.4) / 2, H - W * 0.13, W * 0.4, W * 0.10, "返 回", "ghost");
 }
+function drawFeedback() {
+  ctx.fillStyle = "rgba(10,10,18,.88)"; ctx.fillRect(0, 0, W, H);
+  text("玩家反馈 · 公测", W / 2, H * 0.09, W * 0.07, "#fff", 900);
+  let y = H * 0.17;
+  const info = buildFeedbackText().split("\n");
+  for (const ln of info) {
+    if (ln.indexOf("意见:") === 0) continue;
+    text(ln, 22, y, W * 0.028, "rgba(255,255,255,.6)", 400, "left");
+    y += W * 0.048;
+  }
+  y += W * 0.02;
+  const cw = W - 44;
+  ctx.fillStyle = "rgba(255,255,255,.06)"; rr(22, y, cw, W * 0.17, 14); ctx.fill();
+  const c1 = fbComment.slice(0, 24) || "点「填写意见」，说什么都行";
+  text(c1, 34, y + W * 0.05, W * 0.03, fbComment ? "#fff" : "rgba(255,255,255,.4)", 400, "left");
+  if (fbComment.length > 24) text(fbComment.slice(24, 48), 34, y + W * 0.105, W * 0.03, "#fff", 400, "left");
+  y += W * 0.17 + W * 0.05;
+  const bw = W * 0.64, bx = (W - bw) / 2, bh = W * 0.10;
+  button("fb_edit", bx, y, bw, bh, "✏️ 填写意见", "primary"); y += bh + W * 0.025;
+  button("fb_copy", bx, y, bw, bh, "📋 复制反馈 → 发到玩家群/发给开发者", "ghost", W * 0.03); y += bh + W * 0.025;
+  const half = (bw - 12) / 2;
+  if (!isWx) button("fb_issue", bx, y, half, bh, "GitHub Issue", "ghost", W * 0.028);
+  button("fb_back", bx + bw - half, y, half, bh, "返 回", "ghost");
+}
 
 /* ================= 输入 ================= */
 let touchStart = null;
@@ -930,6 +987,14 @@ function handleAction(id) {
   else if (id === "sprint") startGame("sprint");
   else if (id === "daily") startGame("daily");
   else if (id === "stats") { mode = "stats"; statsScroll = 0; }
+  else if (id === "fb") { mode = "fb"; }
+  else if (id === "fb_back") mode = "menu";
+  else if (id === "fb_edit") editText(fbComment, 60, v => { if (v !== null && v !== undefined) { fbComment = v; store.set("bb_fbcomment", fbComment); } });
+  else if (id === "fb_copy") copyText(buildFeedbackText());
+  else if (id === "fb_issue") {
+    const u = "https://github.com/xiaoyuanbenchu/biebengle/issues/new?title=" + encodeURIComponent("【公测反馈】") + "&body=" + encodeURIComponent(buildFeedbackText());
+    if (__G.window && __G.window.open) __G.window.open(u, "_blank");
+  }
   else if (id === "back") mode = "menu";
   else if (id === "home") { mode = "menu"; }
   else if (id === "mute") { muted = !muted; }
@@ -977,6 +1042,7 @@ if (!isWx && __G.__TEST__) {
     }, 500);
   }
   if (T === "autostats") setTimeout(() => { mode = "stats"; }, 800);
+  if (T === "autofb") setTimeout(() => { mode = "fb"; }, 800);
   if (T === "autorev") armRevenge({ t: "rev", c: 2, s: 50, m: "死于阴阳缩放" });
   if (T === "autorevlose") armRevenge({ t: "rev", c: 1, s: 200, m: "遥遥领先永不服" });
 }

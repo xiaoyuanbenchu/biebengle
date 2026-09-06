@@ -1,5 +1,5 @@
 // 别绷了 · 离线缓存 Service Worker（改资源列表后记得更新 CACHE 版本号）
-const CACHE = "biebengle-v4";
+const CACHE = "biebengle-v5";
 const ASSETS = ["./", "./index.html", "./js/core.js", "./manifest.webmanifest", "./icon-512.png"];
 
 self.addEventListener("install", (e) => {
