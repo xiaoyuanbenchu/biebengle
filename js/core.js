@@ -16,6 +16,9 @@ if (typeof String.prototype.padStart !== "function") {
 if (typeof Array.from !== "function") {
   Array.from = function (it) { const a = []; if (it && it.forEach) it.forEach(v => a.push(v)); return a; };
 }
+if (typeof String.prototype.repeat !== "function") {
+  String.prototype.repeat = function (n) { n = n | 0; let s = String(this), r = ""; while (n-- > 0) r += s; return r; };
+}
 
 /* ================= 平台适配 ================= */
 const isWx = (typeof wx !== "undefined") && !!wx.getSystemInfoSync;
@@ -570,11 +573,18 @@ function genShareImage() {
 }
 
 /* ================= 主循环 ================= */
+let lastWall = 0, dtLast = 0;
 function loop(ts) {
-  if (typeof ts !== "number" || !isFinite(ts)) ts = Date.now();   // 部分真机 rAF 不传时间戳
+  try { tick(ts); } catch (e) { if (__G.console) try { console.error("[bbl] " + (e && e.message)); } catch (e2) {} }
+  requestAnimationFrame(loop);
+}
+function tick(ts) {
+  if (typeof ts !== "number" || !isFinite(ts)) ts = Date.now();
+  const nowW = Date.now();
+  dtLast = lastWall ? Math.min((nowW - lastWall) / 1000, 0.05) : 0.016;   // 墙钟计时，不依赖 rAF 参数行为
+  lastWall = nowW;
+  const dt = dtLast;
   _ts = ts / 1000;
-  const dt = lastFrame ? Math.min((ts - lastFrame) / 1000, 0.05) : 0.016;
-  lastFrame = ts;
   const T = T_FRAC * Math.min(W, H);
   if (mode === "play") {
     if (gmode === "sprint") {
@@ -602,6 +612,7 @@ function loop(ts) {
         else if (ring.type !== "reverse" && r >= F_START * 0.72) ring.dir = -1;
       }
     }
+    if (ring && !isFinite(ring.f)) ring.f = F_START;      // 半径自愈，坏值不再传染
   }
   const c0 = center();
   for (const st of stars) { st.y -= st.z * 14 * dt; if (st.y < -4) { st.y = H + 4; st.x = Math.random() * W; } }
@@ -628,6 +639,7 @@ function draw(ts) {
   else if (mode === "over") drawOver();
   else if (mode === "stats") drawStats();
   drawToast();
+  if (mode === "play" && ring) text("f " + ring.f.toFixed(3) + " dt " + Math.round(dtLast * 1000) + "ms", 16, 64, 11, "rgba(120,220,255,.75)", 400, "left");  // 临时诊断行，问题定位后移除
   if (vig) ctx.drawImage(vig, 0, 0, W, H);
   if (flash > 0) { ctx.fillStyle = "rgba(255,255,255," + flash + ")"; ctx.fillRect(0, 0, W, H); }
   ctx.restore();
