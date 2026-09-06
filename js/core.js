@@ -9,6 +9,14 @@ const __G = (typeof globalThis !== "undefined") ? globalThis
           : (typeof GameGlobal !== "undefined") ? GameGlobal
           : (typeof window !== "undefined") ? window : {};
 
+/* 老设备 polyfill（部分真机 JS 环境较旧） */
+if (typeof String.prototype.padStart !== "function") {
+  String.prototype.padStart = function (n, c) { c = c === undefined ? " " : String(c); let s = String(this); while (s.length < n) s = c.charAt(0) + s; return s; };
+}
+if (typeof Array.from !== "function") {
+  Array.from = function (it) { const a = []; if (it && it.forEach) it.forEach(v => a.push(v)); return a; };
+}
+
 /* ================= 平台适配 ================= */
 const isWx = (typeof wx !== "undefined") && !!wx.getSystemInfoSync;
 let sys;
@@ -258,13 +266,13 @@ function skinUnlocked(sk) {
 function currentSkin() { return skinById(skinId); }
 function ringColor() {
   const sk = currentSkin();
-  if (ring && ring.type === "boss") return "hsl(18 100% 60%)";
-  if (ring && ring.type === "golden") return "hsl(46 100% 60%)";
-  if (ring && ring.type === "trickster") return "hsl(350 95% 65%)";
-  if (ring && ring.type === "bouncer") return "hsl(140 80% 60%)";
-  if (ring && ring.type === "reverse") return "hsl(205 95% 66%)";
-  if (sk.dyn) return "hsl(" + hue + " 95% 62%)";
-  return "hsl(" + sk.hue + " 95% 62%)";
+  if (ring && ring.type === "boss") return "hsl(18,100%,60%)";
+  if (ring && ring.type === "golden") return "hsl(46,100%,60%)";
+  if (ring && ring.type === "trickster") return "hsl(350,95%,65%)";
+  if (ring && ring.type === "bouncer") return "hsl(140,80%,60%)";
+  if (ring && ring.type === "reverse") return "hsl(205,95%,66%)";
+  if (sk.dyn) return "hsl(" + hue + ",95%,62%)";
+  return "hsl(" + sk.hue + ",95%,62%)";
 }
 
 /* ================= UI 原语 ================= */
@@ -563,8 +571,10 @@ function genShareImage() {
 
 /* ================= 主循环 ================= */
 function loop(ts) {
+  if (typeof ts !== "number" || !isFinite(ts)) ts = Date.now();   // 部分真机 rAF 不传时间戳
   _ts = ts / 1000;
-  const dt = Math.min((ts - lastFrame) / 1000, 0.05); lastFrame = ts;
+  const dt = lastFrame ? Math.min((ts - lastFrame) / 1000, 0.05) : 0.016;
+  lastFrame = ts;
   const T = T_FRAC * Math.min(W, H);
   if (mode === "play") {
     if (gmode === "sprint") {
@@ -666,7 +676,7 @@ function drawPlay(ts) {
     ctx.beginPath(); ctx.arc(c0.x, c0.y, g.r + (1 - g.life) * T * 1.1, 0, 7); ctx.stroke();
   }
   ctx.globalAlpha = 1;
-  if (ring) {
+  if (ring && isFinite(ring.f) && isFinite(_ts)) {
     const r = ring.f * Math.min(W, H), col = ringColor();
     const spin = (ring.type === "reverse" ? -1 : 1) * ts / 600;
     const trail = r - ring.dir * speed * ring.spdJit * Math.min(W, H) * 0.05;
@@ -685,7 +695,7 @@ function drawPlay(ts) {
   }
   for (const p of particles) {
     ctx.globalAlpha = 1 - p.t / p.life;
-    ctx.fillStyle = "hsl(" + p.hue + " 90% 65%)";
+    ctx.fillStyle = "hsl(" + p.hue + ",90%,65%)";
     if (sk.id === "pixel") ctx.fillRect(p.x - p.size, p.y - p.size, p.size * 2, p.size * 2);
     else { ctx.beginPath(); ctx.arc(p.x, p.y, p.size, 0, 7); ctx.fill(); }
   }
@@ -748,7 +758,7 @@ function drawMenu() {
     const okS = skinUnlocked(sk);
     ctx.globalAlpha = okS ? 1 : 0.3;
     ctx.beginPath(); ctx.arc(sx0, y, sr, 0, 7);
-    ctx.fillStyle = sk.dyn ? "hsl(280 95% 62%)" : "hsl(" + sk.hue + " 95% 62%)";
+    ctx.fillStyle = sk.dyn ? "hsl(280,95%,62%)" : "hsl(" + sk.hue + ",95%,62%)";
     ctx.fill();
     if (sk.id === skinId) { ctx.strokeStyle = "#fff"; ctx.lineWidth = 2.5; ctx.beginPath(); ctx.arc(sx0, y, sr + 4, 0, 7); ctx.stroke(); }
     else if (!okS) { ctx.fillStyle = "#fff"; ctx.font = Math.round(sr) + "px sans-serif"; ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.fillText("🔒", sx0, y); }
