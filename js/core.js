@@ -572,24 +572,11 @@ function genShareImage() {
   } catch (e) {}
 }
 
-/* ================= 主循环 ================= */
-let lastWall = 0, dtLast = 0, lastErr = "", errCount = 0;
+/* ================= 主循环（结构 = 第一版，真机已验证可运行；只保留确认有效的修复） ================= */
 function loop(ts) {
-  try { tick(ts); }
-  catch (e) {
-    errCount++;
-    if (errCount <= 3 && __G.console) { try { console.error("[bbl#" + errCount + "] " + (e && e.message) + "\n" + (e && e.stack || "")); } catch (e2) {} }
-    lastErr = ((e && e.message) || String(e)) + " @" + ((e && e.stack) ? (e.stack.split("\n")[1] || "").trim().slice(0, 48) : "?");
-  }
-  requestAnimationFrame(loop);
-}
-function tick(ts) {
-  if (typeof ts !== "number" || !isFinite(ts)) ts = Date.now();
-  const nowW = Date.now();
-  dtLast = lastWall ? Math.min((nowW - lastWall) / 1000, 0.05) : 0.016;   // 墙钟计时，不依赖 rAF 参数行为
-  lastWall = nowW;
-  const dt = dtLast;
-  _ts = ts / 1000;
+  _ts = (typeof ts === "number" && isFinite(ts)) ? ts / 1000 : Date.now() / 1000;
+  const dt = lastFrame ? Math.min((ts - lastFrame) / 1000, 0.05) : 0.016;
+  lastFrame = ts;
   const T = T_FRAC * Math.min(W, H);
   if (mode === "play") {
     if (gmode === "sprint") {
@@ -644,11 +631,6 @@ function draw(ts) {
   else if (mode === "over") drawOver();
   else if (mode === "stats") drawStats();
   drawToast();
-  if (mode === "play" && ring) text("f " + ring.f.toFixed(3) + " dt " + Math.round(dtLast * 1000) + "ms", 16, 64, 11, "rgba(120,220,255,.75)", 400, "left");  // 临时诊断行，问题定位后移除
-  if (lastErr) {
-    text("ERR#" + errCount + " " + lastErr.slice(0, 46), 16, 84, 10, "#ff6b81", 400, "left");
-    text(lastErr.slice(46, 96), 16, 98, 10, "#ff6b81", 400, "left");
-  }
   if (vig) ctx.drawImage(vig, 0, 0, W, H);
   if (flash > 0) { ctx.fillStyle = "rgba(255,255,255," + flash + ")"; ctx.fillRect(0, 0, W, H); }
   ctx.restore();
